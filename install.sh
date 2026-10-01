@@ -1,24 +1,20 @@
 #!/usr/bin/env bash
 
-get_project_id() {
-    line=$(grep "^X-KDE-PluginInfo-Name" package/metadata.desktop)
-    IFS='='
-    read -ra array <<< "${line}"
-    projectid=${array[1]}
-    echo ${projectid}
-}
+set -euo pipefail
 
-PROJECT_ID=$(get_project_id)
-INSTALL_LOCATION="${HOME}/.local/share/plasma/plasmoids/"
+PROJECT_ID=$(sed -n 's/^X-KDE-PluginInfo-Name=//p' package/metadata.desktop)
+if [ -z "${PROJECT_ID}" ]; then
+    echo "Installation failed: X-KDE-PluginInfo-Name not found in package/metadata.desktop" >&2
+    exit 1
+fi
+
+INSTALL_LOCATION="${HOME}/.local/share/plasma/plasmoids/${PROJECT_ID}"
 
 echo "Installing ${PROJECT_ID}"
 
-if [ ! -d "${INSTALL_LOCATION}" ]; then
-    mkdir -p "${INSTALL_LOCATION}${PROJECT_ID}"
-else
-    echo "Skipping directory creation: directory exists"
-fi
+# Remove the previous installation so that stale files don't linger
+rm -rf "${INSTALL_LOCATION}"
+mkdir -p "${INSTALL_LOCATION}"
+cp -R "package/." "${INSTALL_LOCATION}/"
 
-cp -R "package/." "${INSTALL_LOCATION}${PROJECT_ID}/" &&
-echo "Successfully installed ${PROJECT_ID} to ${INSTALL_LOCATION}/" ||
-echo "Installation failed"
+echo "Successfully installed ${PROJECT_ID} to ${INSTALL_LOCATION}/"

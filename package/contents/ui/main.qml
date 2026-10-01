@@ -23,8 +23,46 @@ Item {
         }
     }
 
-    readonly property string actuallyActiveProfile: pmSource.data["Power Profiles"] ? (pmSource.data["Power Profiles"]["Current Profile"] || "") : ""
-    readonly property string iconsPath: Qt.resolvedUrl("..") + "/icons/"
+    readonly property var powerProfilesData: pmSource.data["Power Profiles"] || null
+    readonly property string actuallyActiveProfile: powerProfilesData ? (powerProfilesData["Current Profile"] || "") : ""
+    readonly property var supportedProfiles: powerProfilesData ? (powerProfilesData["Profiles"] || []).map(profile => profile["Name"]) : []
+    readonly property string iconsPath: Qt.resolvedUrl("../icons/")
+    readonly property var modeNames: ({
+        "power-saver": i18n("Power Save"),
+        "balanced": i18n("Balanced"),
+        "performance": i18n("Performance"),
+    })
+
+    // Error of the last switch attempt, shown in the tooltip until the profile changes
+    property string lastError: ""
+
+    onActuallyActiveProfileChanged: lastError = ""
+
+    function toggleProfile() {
+        if (actuallyActiveProfile === "") {
+            lastError = i18n("Power profiles are not available (is power-profiles-daemon running?)");
+            return;
+        }
+        const profile = actuallyActiveProfile === "performance" ? "power-saver" : "performance";
+        if (!supportedProfiles.includes(profile)) {
+            lastError = i18n("%1 mode is not supported on this system", modeNames[profile]);
+            return;
+        }
+
+        const service = pmSource.serviceForSource("PowerDevil");
+        const op = service.operationDescription("setPowerProfile");
+        op.profile = profile;
+
+        const job = service.startOperationCall(op);
+        job.finished.connect(job => {
+            if (!job.result) {
+                console.warn("Failed to set power profile " + profile + ": " + job.errorString);
+                lastError = i18n("Failed to activate %1 mode", modeNames[profile]);
+                return;
+            }
+            lastError = "";
+        });
+    }
 
     Plasmoid.compactRepresentation: MouseArea {
         activeFocusOnTab: true
@@ -33,37 +71,23 @@ Item {
         PlasmaCore.IconItem {
             anchors.fill: parent
             source: {
-                // console.log("Mode: " + actuallyActiveProfile)
                 const known_profile = ["power-saver", "performance", "balanced"].includes(actuallyActiveProfile)
                 return iconsPath + (known_profile ? actuallyActiveProfile : "unknown-mode" ) + ".svg"
             }
             active: parent.containsMouse
         }
-        onClicked: {
-            const service = pmSource.serviceForSource("PowerDevil");
-            const op = service.operationDescription("setPowerProfile");
-            op.profile = actuallyActiveProfile === "performance" ? "power-saver" : "performance";
-    
-            const job = service.startOperationCall(op);
-            job.finished.connect(job => {
-                // TODO: Handle operation result and show user the result (how?)
-                // dialogItem.activeProfile = Qt.binding(() => actuallyActiveProfile);
-                // if (!job.result) {
-                //     powerProfileError.text = i18n("Failed to activate %1 mode", profile);
-                //     powerProfileError.sendEvent();
-                //     return;
-                // }
-            });
+        onClicked: toggleProfile()
+        Keys.onPressed: event => {
+            if ([Qt.Key_Space, Qt.Key_Enter, Qt.Key_Return, Qt.Key_Select].includes(event.key)) {
+                toggleProfile();
+                event.accepted = true;
+            }
         }
     }
 
     Plasmoid.toolTipMainText: i18n("Active Power Profile")
     Plasmoid.toolTipSubText: {
-        const mode_names = {
-            "power-saver": i18n("Power Save"),
-            "balanced": i18n("Balanced"),
-            "performance": i18n("Performance"),
-        }
-        return (mode_names[actuallyActiveProfile] || "Unknown")
+        const name = modeNames[actuallyActiveProfile] || i18n("Unknown")
+        return lastError ? name + "\n" + lastError : name
     }
 }

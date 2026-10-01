@@ -1,3 +1,3 @@
- #!/usr/bin/env bash
+#!/usr/bin/env bash
 
- plasmoidviewer -a package
+plasmoidviewer -a package
