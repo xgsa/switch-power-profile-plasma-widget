@@ -1,16 +1,19 @@
-import QtQuick 2.12
+import QtQuick
 
-import org.kde.plasma.core 2.0 as PlasmaCore
-import org.kde.plasma.plasmoid 2.0
+import org.kde.kirigami as Kirigami
+import org.kde.plasma.core as PlasmaCore
+import org.kde.plasma.plasma5support as Plasma5Support
+import org.kde.plasma.plasmoid
 
-Item {
+PlasmoidItem {
     id: root
 
-    Plasmoid.preferredRepresentation: Plasmoid.compactRepresentation
+    // The widget is just a button without a popup, so show it directly
+    preferredRepresentation: fullRepresentation
     Plasmoid.backgroundHints: PlasmaCore.Types.ConfigurableBackground
 
 
-    property QtObject pmSource: PlasmaCore.DataSource {
+    property QtObject pmSource: Plasma5Support.DataSource {
         id: pmSource
         engine: "powermanagement"
         connectedSources: sources
@@ -25,7 +28,7 @@ Item {
 
     readonly property var powerProfilesData: pmSource.data["Power Profiles"] || null
     readonly property string actuallyActiveProfile: powerProfilesData ? (powerProfilesData["Current Profile"] || "") : ""
-    readonly property var supportedProfiles: powerProfilesData ? (powerProfilesData["Profiles"] || []).map(profile => profile["Name"]) : []
+    readonly property var supportedProfiles: powerProfilesData ? (powerProfilesData["Profiles"] || []) : []
     readonly property string iconsPath: Qt.resolvedUrl("../icons/")
     readonly property var modeNames: ({
         "power-saver": i18n("Power Save"),
@@ -64,12 +67,15 @@ Item {
         });
     }
 
-    Plasmoid.compactRepresentation: MouseArea {
+    fullRepresentation: MouseArea {
         activeFocusOnTab: true
         hoverEnabled: true
 
-        PlasmaCore.IconItem {
+        Kirigami.Icon {
             anchors.fill: parent
+            // Icons are monochrome, so recolor them to follow the panel's color scheme
+            isMask: true
+            color: Kirigami.Theme.textColor
             source: {
                 const known_profile = ["power-saver", "performance", "balanced"].includes(actuallyActiveProfile)
                 return iconsPath + (known_profile ? actuallyActiveProfile : "unknown-mode" ) + ".svg"
@@ -85,8 +91,8 @@ Item {
         }
     }
 
-    Plasmoid.toolTipMainText: i18n("Active Power Profile")
-    Plasmoid.toolTipSubText: {
+    toolTipMainText: i18n("Active Power Profile")
+    toolTipSubText: {
         const name = modeNames[actuallyActiveProfile] || i18n("Unknown")
         return lastError ? name + "\n" + lastError : name
     }

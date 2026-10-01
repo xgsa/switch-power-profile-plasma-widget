@@ -1,0 +1,20 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "xgsa"
+            }
+        ],
+        "Category": "Utilities",
+        "Description": "A simple button widget to quickly switch between power save and performance power profiles",
+        "EnabledByDefault": true,
+        "Icon": "speedometer",
+        "Id": "switch-power-profile-plasma-widget",
+        "License": "GPL-3.0+",
+        "Name": "Quick Power Profile Switcher",
+        "Version": "2.0",
+        "Website": "https://github.com/xgsa/switch-power-profile-plasma-widget"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

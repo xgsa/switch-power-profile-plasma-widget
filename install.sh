@@ -2,9 +2,9 @@
 
 set -euo pipefail
 
-PROJECT_ID=$(sed -n 's/^X-KDE-PluginInfo-Name=//p' package/metadata.desktop)
+PROJECT_ID=$(sed -n 's/^ *"Id": *"\([^"]*\)".*/\1/p' package/metadata.json)
 if [ -z "${PROJECT_ID}" ]; then
-    echo "Installation failed: X-KDE-PluginInfo-Name not found in package/metadata.desktop" >&2
+    echo "Installation failed: KPlugin.Id not found in package/metadata.json" >&2
     exit 1
 fi
 
